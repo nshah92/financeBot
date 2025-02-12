@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Financial Chatbot</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+
+        #chat-container {
+            width: 600px;
+            margin: 0 auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #chat-log {
+            height: 300px;
+            overflow-y: scroll;
+            padding: 5px;
+        }
+
+        #user-input {
+            width: 100%;
+            padding: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chat-container">
+        <h1>Financial Chatbot</h1>
+        <div id="chat-log"></div>
+        <input type="text" id="user-input" placeholder="Type your query...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+
+        function sendMessage() {
+            const query = userInput.value;
+            if (query.trim() === "") return; // Don't send empty queries
+
+            displayMessage(query, true); // Display user message
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: query })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    if (data.response && Array.isArray(data.response)) {
+                        data.response.forEach(result => {
+                            displayMessage(result.text, false, result.document_index); // Display chatbot response
+                        });
+                    } else {
+                        displayMessage("Error: Could not retrieve a response.", false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    displayMessage("An error occurred.", false);
+                });
+
+            userInput.value = ''; // Clear input field
+        }
+
+        function displayMessage(message, isUser, documentIndex = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.innerHTML = message; // Use innerHTML to render HTML
+
+            if (documentIndex !== null) {
+                const docIndexSpan = document.createElement('span');
+                docIndexSpan.style.fontWeight = "bold";
+                docIndexSpan.textContent = ` (Document ${documentIndex + 1})`;
+                messageDiv.appendChild(docIndexSpan);
+            }
+
+            if (isUser) {
+                messageDiv.style.textAlign = 'right'; // User messages on the right
+            }
+
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight; // Scroll to bottom
+        }
+
+        userInput.addEventListener("keyup", function (event) {
+            if (event.keyCode === 13) { // Enter key
+                sendMessage();
+            }
+        });
+
+    </script>
+</body>
+
+</html>
